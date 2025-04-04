@@ -2,7 +2,10 @@ package com.example.gymmanagementsystem;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -11,7 +14,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,7 +23,9 @@ public class ViewMembersActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private MemberAdapter adapter;
     private List<Member> memberList;
+    private List<Member> filteredList; // NEW: Filtered list for search
     private Button addMemberBtn;
+    private EditText searchMember; // NEW: Search bar
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,10 +34,13 @@ public class ViewMembersActivity extends AppCompatActivity {
 
         recyclerView = findViewById(R.id.recyclerView);
         addMemberBtn = findViewById(R.id.addMemberBtn);
+        searchMember = findViewById(R.id.searchMember); // NEW: Search bar reference
+
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         memberList = new ArrayList<>();
-        adapter = new MemberAdapter(this, memberList);
+        filteredList = new ArrayList<>(); // NEW: Initialize filtered list
+        adapter = new MemberAdapter(this, filteredList); // Use filteredList instead
         recyclerView.setAdapter(adapter);
 
         addMemberBtn.setOnClickListener(v -> {
@@ -41,22 +48,39 @@ public class ViewMembersActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
-        loadMembersFromFirestore(); // NEW: Load members from Firestore
+        loadMembersFromFirestore();
+
+        // NEW: Implement search functionality
+        searchMember.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                filterList(s.toString());
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
     }
 
-    // NEW: Method to load members from Firestore
     private void loadMembersFromFirestore() {
         FirebaseFirestore.getInstance().collection("members")
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     memberList.clear();
+                    filteredList.clear(); // Also clear filtered list
+
                     for (DocumentSnapshot doc : queryDocumentSnapshots.getDocuments()) {
                         Member member = doc.toObject(Member.class);
                         if (member != null) {
-                            member.setId(doc.getId()); // Set the Firestore document ID
+                            member.setId(doc.getId());
                             memberList.add(member);
                         }
                     }
+
+                    filteredList.addAll(memberList); // Show all members initially
                     adapter.notifyDataSetChanged();
                 })
                 .addOnFailureListener(e -> {
@@ -64,7 +88,22 @@ public class ViewMembersActivity extends AppCompatActivity {
                 });
     }
 
-    // NEW: Refresh list after an update
+    private void filterList(String query) {
+        filteredList.clear();
+
+        if (query.isEmpty()) {
+            filteredList.addAll(memberList);
+        } else {
+            for (Member member : memberList) {
+                if (member.getName().toLowerCase().contains(query.toLowerCase())) {
+                    filteredList.add(member);
+                }
+            }
+        }
+
+        adapter.notifyDataSetChanged();
+    }
+
     public void refreshMemberList() {
         loadMembersFromFirestore();
     }
