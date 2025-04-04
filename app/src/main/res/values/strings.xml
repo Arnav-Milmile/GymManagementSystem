@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Gym</string>
+    <string-array name="subscription_options">
+        <item>Monthly(Strength)</item>
+        <item>Monthly(Cardio+Strength)</item>
+        <item>3 Month(Cardio)</item>
+        <item>3 Month(Cardio+Strength)</item>
+    </string-array>
+</resources>
