@@ -1,7 +1,6 @@
 package com.example.gymmanagementsystem;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -12,6 +11,9 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.DocumentReference;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -47,18 +49,14 @@ public class MemberAdapter extends RecyclerView.Adapter<MemberAdapter.MemberView
         holder.subscription.setText("Subscription: " + member.getSubscriptionType());
         holder.endDate.setText("End Date : " + member.getEndDate());
 
-
-
+        // Delete member on button click using Firestore
         holder.button.setOnClickListener(v -> {
-            removeMember(holder.getAdapterPosition());
-            Toast.makeText(v.getContext(), "Member Deleted!", Toast.LENGTH_SHORT).show();
-            ((ViewMembersActivity) v.getContext()).refreshMemberList(); // List Refresh
+            removeMember(position);  // NEW: Remove using Firestore
         });
 
-        // Default color reset (IMPORTANT!)
-        holder.itemView.setBackgroundColor(Color.WHITE); // Default color
+        // Background color logic based on subscription end date
+        holder.itemView.setBackgroundColor(Color.WHITE); // Reset to default
 
-        // Get today's date
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
         String currentDateStr = sdf.format(new Date());
 
@@ -71,22 +69,15 @@ public class MemberAdapter extends RecyclerView.Adapter<MemberAdapter.MemberView
                 long daysLeft = TimeUnit.DAYS.convert(diff, TimeUnit.MILLISECONDS);
 
                 if (daysLeft <= 7 && daysLeft > 0) {
-                    // Less than or equal to 3 days left → Yellow background
                     holder.itemView.setBackgroundColor(Color.YELLOW);
                 } else if (daysLeft <= 0) {
-                    // Subscription expired → Red background
                     holder.itemView.setBackgroundColor(Color.RED);
                 }
             }
         } catch (ParseException e) {
             e.printStackTrace();
         }
-
-        holder.button.setOnClickListener(v -> removeMember(position));
     }
-
-
-
 
     @Override
     public int getItemCount() {
@@ -108,42 +99,26 @@ public class MemberAdapter extends RecyclerView.Adapter<MemberAdapter.MemberView
         }
     }
 
+    // NEW: Remove member from Firestore instead of SharedPreferences
     private void removeMember(int position) {
         Member member = memberList.get(position);
+        String docId = member.getId();
 
-        // 🔥 SharedPreferences se member delete karo
-        SharedPreferences sharedPreferences = context.getSharedPreferences("GymMembers", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.remove(member.getName()); // ✅ Member ka naam key hai, usko remove karo
-        editor.apply();
-
-        // 🔄 RecyclerView se bhi delete karo
-        memberList.remove(position);
-        notifyItemRemoved(position);
-        notifyItemRangeChanged(position, memberList.size());
-
-        Toast.makeText(context, "Member Deleted!", Toast.LENGTH_SHORT).show();
-    }
-
-
-
-
-
-    private void saveMembersToSharedPreferences() {
-        SharedPreferences sharedPreferences = context.getSharedPreferences("GymPrefs", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-
-        StringBuilder membersData = new StringBuilder();
-        for (Member member : memberList) {
-            membersData.append(member.getName()).append(",");
-            membersData.append(member.getPhone()).append(",");
-            membersData.append(member.getJoiningDate()).append(",");
-            membersData.append(member.getSubscriptionType()).append(",");
-            membersData.append(member.getEndDate()).append(";");
-        }
-
-        editor.putString("members", membersData.toString());
-        editor.apply();
+        FirebaseFirestore.getInstance().collection("members")
+                .document(docId)
+                .delete()
+                .addOnSuccessListener(aVoid -> {
+                    memberList.remove(position);
+                    notifyItemRemoved(position);
+                    notifyItemRangeChanged(position, memberList.size());
+                    Toast.makeText(context, "Member Deleted!", Toast.LENGTH_SHORT).show();
+                    // Optionally, if the context is ViewMembersActivity, refresh the list.
+                    if (context instanceof ViewMembersActivity) {
+                        ((ViewMembersActivity) context).refreshMemberList();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(context, "Error deleting member", Toast.LENGTH_SHORT).show();
+                });
     }
 }
-

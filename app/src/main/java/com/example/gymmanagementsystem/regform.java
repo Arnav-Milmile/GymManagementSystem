@@ -1,9 +1,7 @@
 package com.example.gymmanagementsystem;
 
 import android.app.DatePickerDialog;
-import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -12,10 +10,16 @@ import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.google.firebase.firestore.FirebaseFirestore;
+
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
+import java.util.HashMap;
+import java.util.Map;
 
 public class regform extends AppCompatActivity {
 
@@ -60,14 +64,10 @@ public class regform extends AppCompatActivity {
 
     private void calculateEndDate(int year, int month, int day) {
         try {
-            // 🔹 Date ka format set karo
             SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
-
-            // 🔹 Joining date ko convert karo Date object me
             Calendar endDate = Calendar.getInstance();
             endDate.set(year, month, day);
 
-            // 🔹 Subscription ke hisaab se days add karo
             String subscriptionType = spinnerSubscription.getSelectedItem().toString().trim();
             int daysToAdd = 30; // Default monthly
 
@@ -82,13 +82,9 @@ public class regform extends AppCompatActivity {
                     break;
             }
 
-            // 🔹 Direct date me days add karo
             endDate.add(Calendar.DAY_OF_MONTH, daysToAdd);
-
-            // 🔹 Final end date nikal ke textview me set karo
             String finalEndDate = sdf.format(endDate.getTime());
             txtEndDate.setText(finalEndDate);
-
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -96,7 +92,7 @@ public class regform extends AppCompatActivity {
         }
     }
 
-
+    // NEW: Save member data to Firestore instead of SharedPreferences
     private void saveMember() {
         String name = editName.getText().toString().trim();
         String phone = editPhone.getText().toString().trim();
@@ -108,21 +104,24 @@ public class regform extends AppCompatActivity {
             return;
         }
 
-        SharedPreferences sharedPreferences = getSharedPreferences("GymMembers", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
+        // Create a map with member details
+        Map<String, Object> memberData = new HashMap<>();
+        memberData.put("name", name);
+        memberData.put("phone", phone);
+        memberData.put("joiningDate", joiningDate);
+        memberData.put("subscriptionType", subscriptionType);
+        memberData.put("endDate", endDate);
 
-        // 🔹 Member ko ek key (name) ke under store karo
-        String memberData = phone + "," + joiningDate + "," + subscriptionType + "," + endDate;
-        editor.putString(name, memberData);
-        editor.apply();
-
-        Toast.makeText(this, "Member Saved Successfully!", Toast.LENGTH_SHORT).show();
-
-        // 🔄 List update karne ke liye ViewMembersActivity open karo
-        Intent intent = new Intent(regform.this, ViewMembersActivity.class);
-        startActivity(intent);
-        finish();
+        FirebaseFirestore.getInstance().collection("members")
+                .add(memberData)
+                .addOnSuccessListener(documentReference -> {
+                    Toast.makeText(regform.this, "Member Saved Successfully!", Toast.LENGTH_SHORT).show();
+                    Intent intent = new Intent(regform.this, ViewMembersActivity.class);
+                    startActivity(intent);
+                    finish();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(regform.this, "Error saving member: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
     }
-
 }
-
