@@ -12,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.DocumentSnapshot;
 
@@ -67,6 +68,7 @@ public class ViewMembersActivity extends AppCompatActivity {
 
     private void loadMembersFromFirestore() {
         FirebaseFirestore.getInstance().collection("members")
+                .whereEqualTo("ownerId", FirebaseAuth.getInstance().getCurrentUser().getUid())
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     memberList.clear();

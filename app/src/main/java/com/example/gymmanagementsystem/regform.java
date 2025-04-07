@@ -20,6 +20,7 @@ import java.util.Calendar;
 import java.util.Locale;
 import java.util.HashMap;
 import java.util.Map;
+import com.google.firebase.auth.FirebaseAuth;
 
 public class regform extends AppCompatActivity {
 
@@ -111,6 +112,8 @@ public class regform extends AppCompatActivity {
         memberData.put("joiningDate", joiningDate);
         memberData.put("subscriptionType", subscriptionType);
         memberData.put("endDate", endDate);
+        // NEW: Save the current owner's UID with the member record
+        memberData.put("ownerId", FirebaseAuth.getInstance().getCurrentUser().getUid());
 
         FirebaseFirestore.getInstance().collection("members")
                 .add(memberData)
