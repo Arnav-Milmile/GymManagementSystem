@@ -5,34 +5,54 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:padding="16dp"
     tools:context=".ViewMembersActivity">
+
+    <!-- Title -->
+    <TextView
+        android:id="@+id/titleText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Members"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="#000"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="8dp"
+        android:gravity="center"/>
 
     <!-- Search Bar -->
     <EditText
         android:id="@+id/searchMember"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="50dp"
         android:hint="Search Member"
-        android:padding="12dp"
-        android:background="@android:drawable/editbox_background"
         android:drawableLeft="@android:drawable/ic_menu_search"
-        android:layout_margin="10dp"
-        app:layout_constraintTop_toTopOf="parent"
+        android:drawablePadding="10dp"
+        android:padding="12dp"
+        android:background="@drawable/search_background"
+        android:textColor="@android:color/black"
+        android:textSize="16sp"
+        app:layout_constraintTop_toBottomOf="@id/titleText"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="12dp"/>
 
-    <!-- RecyclerView for Members List -->
+    <!-- RecyclerView for Member List -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_margin="10dp"
-        android:contentDescription="@string/app_name"
-        android:padding="16dp"
+        android:padding="8dp"
+        android:clipToPadding="false"
+        app:layout_constraintTop_toBottomOf="@id/searchMember"
         app:layout_constraintBottom_toTopOf="@id/addMemberBtn"
-        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/searchMember" />
+        app:layout_constraintEnd_toEndOf="parent"
+        android:scrollbars="vertical"
+        tools:listitem="@layout/item_member" />
 
     <!-- Add Member Button -->
     <Button
@@ -40,10 +60,15 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="Add Member"
-        android:layout_margin="10dp"
+        android:textAllCaps="false"
+        android:textSize="18sp"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="16dp"
+        android:backgroundTint="@color/purple_500"
+        android:textColor="@android:color/white"
+        app:cornerRadius="12dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
-

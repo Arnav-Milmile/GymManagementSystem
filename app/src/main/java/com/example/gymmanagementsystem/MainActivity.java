@@ -1,6 +1,8 @@
 package com.example.gymmanagementsystem;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -9,14 +11,11 @@ import android.widget.Toast;
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-
-import android.Manifest;
-import android.content.pm.PackageManager;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -30,12 +29,12 @@ import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
 
-    private Button button1, button2, button3, btnLogout;
+    private Button btnManageMembers, btnFees, btnBMI, btnLogout;
     private FirebaseAuth mAuth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        // Start one-time reminder worker
+        // Enqueue one-time subscription reminder
         WorkManager.getInstance(this).enqueue(
                 new OneTimeWorkRequest.Builder(SubscriptionReminderWorker.class).build()
         );
@@ -46,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
 
         mAuth = FirebaseAuth.getInstance();
 
-        // Check if user is signed in
+        // Check login status
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser == null) {
             startActivity(new Intent(MainActivity.this, LoginActivity.class));
@@ -54,56 +53,63 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        button1 = findViewById(R.id.manmem);
-        button2 = findViewById(R.id.fee);
-        button3 = findViewById(R.id.bmi);
+        // Button initialization
+        btnManageMembers = findViewById(R.id.manmem);
+
+        btnBMI = findViewById(R.id.bmi);
         btnLogout = findViewById(R.id.btnLogout);
 
-        // Navigation
-        button1.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, ManageMembers.class)));
-        button3.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, bmicalculator.class)));
+        // Click listeners
+        btnManageMembers.setOnClickListener(v ->
+                startActivity(new Intent(MainActivity.this, ManageMembers.class)));
 
-        // Logout button
+        btnFees.setOnClickListener(v ->
+                startActivity(new Intent(MainActivity.this, ViewFeesActivity.class)));
+
+        btnBMI.setOnClickListener(v ->
+                startActivity(new Intent(MainActivity.this, bmicalculator.class)));
+
         btnLogout.setOnClickListener(v -> {
             mAuth.signOut();
             startActivity(new Intent(MainActivity.this, LoginActivity.class));
             finish();
         });
 
-        // Fullscreen padding adjustment
+        // Insets padding for full-screen experience
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
 
-        // SMS permission
+        // Request SMS permission if not granted
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS)
                 != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.SEND_SMS}, 100);
         }
 
-        // Daily Reminder Worker
-        PeriodicWorkRequest dailyWorkRequest = new PeriodicWorkRequest.Builder(
-                SubscriptionReminderWorker.class, 1, TimeUnit.DAYS)
-                .build();
+        // Set up daily background worker
+        PeriodicWorkRequest dailyReminder =
+                new PeriodicWorkRequest.Builder(SubscriptionReminderWorker.class, 1, TimeUnit.DAYS)
+                        .build();
 
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
                 "SubscriptionReminderWork",
                 ExistingPeriodicWorkPolicy.KEEP,
-                dailyWorkRequest
+                dailyReminder
         );
     }
 
+    // Handle permission result
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == 100) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(this, "SMS permission granted", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, "SMS permission denied", Toast.LENGTH_SHORT).show();
-            }
+            String msg = (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED)
+                    ? "SMS permission granted"
+                    : "SMS permission denied";
+            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
         }
     }
 }
